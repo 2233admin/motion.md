@@ -1,108 +1,210 @@
-<div align="center">
+# MOTION.md
 
-# motion.md
+A format specification for describing motion design intent and temporal behavior to coding agents. `MOTION.md` gives agents a persistent, structured understanding of how a product moves.
 
-**开放、运行时无关的运动设计规范。**<br>
-为人类保留设计意图，为编程 Agent 提供稳定、可解析的结构。
+用于向编程 Agent 描述运动设计意图与时序行为的格式规范。`MOTION.md` 让 Agent 持续、结构化地理解一个产品应该如何运动。
 
-**An open, runtime-neutral specification for motion design.**<br>
-It preserves design intent for people and provides a stable structure for coding agents.
+**English** · [简体中文](README.zh-CN.md)
 
-[English](#why-motionmd) · [简体中文](README.zh-CN.md)
+## The Format
 
-[![Specification](https://img.shields.io/badge/spec-v0.1_draft-5b5bd6)](docs/spec.md)
-[![Tests](https://img.shields.io/badge/tests-17_passing-2f855a)](tests)
-[![License](https://img.shields.io/badge/license-MIT-1f2937)](LICENSE)
+A `MOTION.md` file combines machine-readable motion semantics in YAML front matter with human-readable design intent in Markdown prose.
 
-</div>
+The YAML defines exact states, events, transitions, timelines, curves, interruption rules, accessibility substitutions, and performance budgets. The prose explains why those rules exist, what the motion should communicate, and where restraint matters.
 
+```md
+---
+version: "0.1"
+name: Quiet Feedback
+posture: minimal
+states:
+  idle:
+    description: The control is ready.
+  active:
+    description: The control is selected.
+events:
+  activate:
+    description: The user activates the control.
+    source: user
+transitions:
+  become-active:
+    from: idle
+    to: active
+    on: activate
+    mode: instant
+    interruption:
+      policy: replace
+    cancellation:
+      policy: target
+reducedMotion:
+  strategy: instant
+performance:
+  targetFps: 60
+  maxMainThreadMsPerFrame: 3
+  maxConcurrentTracks: 1
+  inputReadyMs: 0
+  deterministic: true
+provenance:
+  - id: product-intent
+    kind: authored
+    description: Original motion direction.
 ---
 
-Motion is more than duration and easing. It is the authored relationship between state, event, time, interruption, accessibility, and product intent.
+## Motion Thesis
 
-`motion.md` defines a portable `MOTION.md` document with two complementary layers:
+Feedback begins with the user's input and never delays the result.
 
-- **Machine-readable YAML** describes states, events, transitions, timelines, curves, reduced-motion substitutions, performance budgets, deterministic playback, and provenance.
-- **Human-readable Markdown** explains the motion thesis, hierarchy, emotional intent, restraint, and the reasons behind each rule.
+## Motion Principles
 
-Values make behavior reproducible. Prose explains why that behavior belongs in the product.
+- State commits before confirmation finishes.
 
-## Why motion.md
+## Hierarchy and Choreography
 
-Animation libraries describe how to render movement. They do not explain why something moves, which state owns the result, what happens when input interrupts it, or what meaning must survive when motion is reduced.
+Only the activated control responds.
 
-`motion.md` preserves those decisions before a runtime is selected:
+## Interruption
 
-```text
-MOTION.md → Parser → Motion IR
-Motion IR → Consumer policy → Runtime adapter
-Runtime adapter → Evidence and QA
+The newest input is authoritative.
+
+## Reduced Motion
+
+State and content remain readable without interpolation.
+
+## Performance
+
+Input remains available at time zero.
+
+## Provenance
+
+This motion direction is authored for the product.
 ```
 
-CSS, WAAPI, GSAP, Anime.js, Canvas, SVG, WebGL, and native UI frameworks are adapter concerns. None is privileged by the core format.
+An agent reading this file knows which state owns the result, which event causes the change, how interruption is resolved, what reduced motion preserves, and which performance limits must survive runtime selection.
 
-> [!IMPORTANT]
-> The specification captures motion intent and behavior. It is not an animation engine, effect gallery, component library, or template marketplace.
+See the [minimal](examples/minimal/MOTION.md), [expressive](examples/expressive/MOTION.md), [procedural](examples/procedural/MOTION.md), and [reduced-motion](examples/reduced-motion/MOTION.md) examples for complete motion systems.
 
-## Status
+## Getting Started
 
-The specification is currently a **v0.1 draft**. The document contract, JSON Schema, Motion IR, and reference CLI are ready for evaluation, but may change incompatibly before v1.0.
+The reference implementation requires Node.js 20 or newer and has no runtime dependencies.
 
-The project is open source under the MIT License. GitHub Releases are the distribution channel for the draft. The npm package remains marked `private` only to prevent accidental publication before its distribution contract is stable.
-
-## What is included
-
-- The `MOTION.md` document contract and version policy
-- JSON Schema Draft 2020-12 for YAML front matter
-- Stable, runtime-neutral Motion IR
-- Dependency-free parsing and linting
-- Formatter-neutral semantic diffing
-- Agent-readable `lint`, `parse`, `diff`, and `spec` commands
-- Minimal, expressive, procedural, and reduced-motion examples
-- Valid and invalid conformance fixtures
-- Provenance rules for authored, measured, derived, and research-informed motion
-
-## Quick start
-
-Requires Node.js 20 or newer. The reference implementation has no runtime dependencies.
-
-```sh
-npm test
-npm run lint
+```bash
 npm link
-motionmd spec
+motionmd lint examples/minimal/MOTION.md
 ```
 
-| Command | Purpose |
+The CLI emits structured findings that coding agents can act on:
+
+```json
+{
+  "findings": [],
+  "format": "motion.md",
+  "specVersion": "0.1",
+  "summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 0
+  }
+}
+```
+
+Compare two motion systems to detect changes in normalized Motion IR and authored rationale:
+
+```bash
+motionmd diff before/MOTION.md after/MOTION.md
+```
+
+## The Specification
+
+The full `MOTION.md` specification lives at [`docs/spec.md`](docs/spec.md). What follows is a condensed reference.
+
+### File Structure
+
+A `MOTION.md` file has two layers:
+
+1. **YAML front matter** — exact motion semantics, delimited by `---` fences at the top of the file;
+2. **Markdown body** — design intent and rationale organized into `##` sections.
+
+YAML is normative for exact values and graph relationships. Markdown is normative for intent, priorities, prohibitions, and decision rationale. A conforming consumer reports conflicts instead of silently choosing one layer.
+
+### Motion Schema
+
+| Field | Purpose |
 | --- | --- |
-| `motionmd lint <file>` | Validate a `MOTION.md` document |
-| `motionmd parse <file>` | Parse front matter and Markdown |
-| `motionmd diff <a> <b>` | Compare two documents semantically |
-| `motionmd spec` | Print the bundled specification |
+| `version` | Specification version |
+| `name` | Human-readable motion system name |
+| `posture` | `static`, `minimal`, `expressive`, or `procedural` |
+| `states` | Semantic product states |
+| `events` | User, system, data, time, viewport, media, or sensor inputs |
+| `curves` | Linear, Bézier, steps, spring, or procedural curves |
+| `timelines` | Runtime-neutral drivers, tracks, and keyframes |
+| `transitions` | State changes, interruption, and cancellation policy |
+| `reducedMotion` | Accessibility strategy and semantic substitutions |
+| `performance` | Frame, input, concurrency, and determinism budgets |
+| `provenance` | Authored, measured, derived, or research sources |
 
-All commands emit JSON except `spec`, which defaults to Markdown. Diagnostics go to standard error; structured results go to standard output.
+The normative JSON Schema is [`schemas/motion.schema.json`](schemas/motion.schema.json).
 
-## Explore the repository
+### Section Order
 
-- [`PHILOSOPHY.md`](PHILOSOPHY.md) — product philosophy and non-goals
-- [`docs/spec.md`](docs/spec.md) — normative `MOTION.md` v0.1 specification
-- [`docs/terminology.md`](docs/terminology.md) — shared vocabulary
-- [`docs/motion-ir.md`](docs/motion-ir.md) — normalized Motion IR contract
-- [`docs/interoperability.md`](docs/interoperability.md) — `DESIGN.md`, Pipeline, and adapter boundaries
-- [`docs/versioning.md`](docs/versioning.md) — compatibility and version policy
-- [`schemas/motion.schema.json`](schemas/motion.schema.json) — JSON Schema for YAML front matter
-- [`packages/`](packages) — parser, Motion IR, and CLI reference implementations
-- [`examples/`](examples) — four reference motion systems
-- [`fixtures/`](fixtures) — valid and invalid conformance inputs
-- [`tests/`](tests) — reference implementation tests
+Markdown sections may be omitted, but those present should follow this order:
+
+1. Motion Thesis
+2. Motion Principles
+3. Hierarchy and Choreography
+4. Interruption
+5. Reduced Motion
+6. Performance
+7. Provenance
+
+Unknown sections are preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous.
+
+## CLI Reference
+
+All commands accept file paths; `lint` and `parse` also accept `-` for standard input. Output defaults to JSON.
+
+| Command | Description |
+| --- | --- |
+| `motionmd lint <file\|->` | Validate a document and emit structured findings |
+| `motionmd parse <file\|->` | Emit the normalized document and Motion IR |
+| `motionmd diff <before> <after>` | Compare Motion IR and prose sections |
+| `motionmd spec` | Output the Markdown specification |
+| `motionmd spec --format json` | Output the JSON Schema |
+
+`lint`, `parse`, and `diff` exit with code `1` when invalid or breaking results are found. CLI misuse and unreadable input exit with code `2`.
 
 ## Relationship to DESIGN.md
 
-The product shape is inspired by Google Labs' [`design.md`](https://github.com/google-labs-code/design.md): a portable Markdown document with optional structured front matter, a schema, examples, and agent-friendly tooling.
+The project shape deliberately aligns with Google Labs' [`design.md`](https://github.com/google-labs-code/design.md):
 
-`motion.md` carries forward one central idea: precise values provide context, but clearly stated intent and rationale determine whether generated work belongs to the product.
+| Shared convention | `DESIGN.md` | `MOTION.md` |
+| --- | --- | --- |
+| Portable project document | Visual identity | Motion intent and temporal behavior |
+| YAML front matter | Exact design tokens | Exact states, events, timelines, and budgets |
+| Markdown prose | Visual rationale | Motion rationale, hierarchy, and restraint |
+| Machine contract | Schema and linting | Schema, linting, and Motion IR |
+| Agent workflow | Read, validate, export | Read, validate, normalize, compare |
 
-The specification remains independent. It does not fork `DESIGN.md`, redefine visual tokens, or require a particular design-system tool. See [`docs/interoperability.md`](docs/interoperability.md).
+The formats are complementary, not nested. `DESIGN.md` owns visual identity and design-system values. `MOTION.md` owns state change, time, interruption, reduced motion, and performance. Tooling may consume both without either specification redefining the other.
+
+See [`docs/interoperability.md`](docs/interoperability.md) for the consumer boundary.
+
+## Runtime Interoperability
+
+CSS, WAAPI, GSAP, Anime.js, Canvas, SVG, WebGL, and native UI frameworks are runtime adapters. None is privileged by the core format.
+
+The stable handoff is:
+
+```text
+MOTION.md → parser → Motion IR
+Motion IR → consumer policy → runtime adapter
+Runtime adapter → evidence and QA
+```
+
+## Status
+
+The `MOTION.md` format is at version `0.1` and remains a draft. The specification, JSON Schema, Motion IR, and CLI are ready for evaluation. Incompatible changes may occur before v1.0.
+
+The repository is open source under the MIT License. The package remains marked `private` only to prevent accidental npm publication while the distribution contract is still evolving.
 
 ## License
 

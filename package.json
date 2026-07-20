@@ -1,0 +1,19 @@
+{
+  "name": "motion.md",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runtime-neutral MOTION.md specification and reference tooling",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "motionmd": "packages/cli/bin/motionmd.mjs"
+  },
+  "scripts": {
+    "lint": "node packages/cli/bin/motionmd.mjs lint examples/minimal/MOTION.md",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run test && node packages/cli/bin/motionmd.mjs lint examples/minimal/MOTION.md && node packages/cli/bin/motionmd.mjs lint examples/expressive/MOTION.md && node packages/cli/bin/motionmd.mjs lint examples/procedural/MOTION.md && node packages/cli/bin/motionmd.mjs lint examples/reduced-motion/MOTION.md"
+  },
+  "license": "MIT"
+}

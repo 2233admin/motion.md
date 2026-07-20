@@ -1,0 +1,438 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://motion.md/schemas/motion.schema.json",
+  "title": "MOTION.md front matter v0.1",
+  "type": "object",
+  "required": ["version", "name", "posture", "reducedMotion", "performance", "provenance"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "posture": { "enum": ["static", "minimal", "expressive", "procedural"] },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "states": { "$ref": "#/$defs/states" },
+    "events": { "$ref": "#/$defs/events" },
+    "curves": { "$ref": "#/$defs/curves" },
+    "timelines": { "$ref": "#/$defs/timelines" },
+    "transitions": { "$ref": "#/$defs/transitions" },
+    "reducedMotion": { "$ref": "#/$defs/reducedMotion" },
+    "performance": { "$ref": "#/$defs/performance" },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/provenance" }
+    }
+  },
+  "patternProperties": {
+    "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "posture": { "not": { "const": "static" } } },
+        "required": ["posture"]
+      },
+      "then": {
+        "required": ["states", "events", "transitions"],
+        "properties": {
+          "states": { "minProperties": 1 },
+          "events": { "minProperties": 1 },
+          "transitions": { "minProperties": 1 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "jsonValue": {
+      "anyOf": [
+        { "type": ["string", "number", "boolean", "null"] },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "delayMs": { "type": "integer", "minimum": 0 },
+        "curve": { "$ref": "#/$defs/id" }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "required": ["description"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "invariants": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "states": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/state" }
+    },
+    "event": {
+      "type": "object",
+      "required": ["description", "source"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "source": { "enum": ["user", "system", "data", "time", "viewport", "media", "sensor"] }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "events": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/event" }
+    },
+    "linearCurve": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "const": "linear" } },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "bezierCurve": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "const": "cubic-bezier" },
+        "value": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            { "type": "number" },
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            { "type": "number" }
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "stepsCurve": {
+      "type": "object",
+      "required": ["type", "count", "jump"],
+      "properties": {
+        "type": { "const": "steps" },
+        "count": { "type": "integer", "minimum": 1 },
+        "jump": { "enum": ["start", "end", "none", "both"] }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "springCurve": {
+      "type": "object",
+      "required": ["type", "mass", "stiffness", "damping", "settle"],
+      "properties": {
+        "type": { "const": "spring" },
+        "mass": { "type": "number", "exclusiveMinimum": 0 },
+        "stiffness": { "type": "number", "exclusiveMinimum": 0 },
+        "damping": { "type": "number", "minimum": 0 },
+        "initialVelocity": { "type": "number" },
+        "settle": {
+          "type": "object",
+          "required": ["positionEpsilon", "velocityEpsilon", "maxDurationMs"],
+          "properties": {
+            "positionEpsilon": { "type": "number", "exclusiveMinimum": 0 },
+            "velocityEpsilon": { "type": "number", "exclusiveMinimum": 0 },
+            "maxDurationMs": { "type": "integer", "exclusiveMinimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "proceduralCurve": {
+      "type": "object",
+      "required": ["type", "sample"],
+      "properties": {
+        "type": { "const": "procedural" },
+        "generator": { "$ref": "#/$defs/id" },
+        "expression": { "type": "string", "minLength": 1 },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "seed": { "type": "integer" },
+        "sample": {
+          "type": "object",
+          "required": ["rateHz", "durationMs"],
+          "properties": {
+            "rateHz": { "type": "number", "exclusiveMinimum": 0 },
+            "durationMs": { "type": "integer", "exclusiveMinimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "oneOf": [
+        { "required": ["generator"], "not": { "required": ["expression"] } },
+        { "required": ["expression"], "not": { "required": ["generator"] } }
+      ],
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "curve": {
+      "oneOf": [
+        { "$ref": "#/$defs/linearCurve" },
+        { "$ref": "#/$defs/bezierCurve" },
+        { "$ref": "#/$defs/stepsCurve" },
+        { "$ref": "#/$defs/springCurve" },
+        { "$ref": "#/$defs/proceduralCurve" }
+      ]
+    },
+    "curves": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/curve" }
+    },
+    "keyframe": {
+      "type": "object",
+      "required": ["at", "value"],
+      "properties": {
+        "at": { "type": "number", "minimum": 0, "maximum": 1 },
+        "value": { "$ref": "#/$defs/jsonValue" }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "track": {
+      "type": "object",
+      "required": ["target", "property", "keyframes"],
+      "properties": {
+        "target": { "$ref": "#/$defs/id" },
+        "property": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$" },
+        "curve": { "$ref": "#/$defs/id" },
+        "startMs": { "type": "integer", "minimum": 0 },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "keyframes": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/keyframe" }
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "driver": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["clock", "scroll", "pointer", "media", "custom"] },
+        "axis": { "enum": ["x", "y", "scalar"] },
+        "range": {
+          "type": "array",
+          "prefixItems": [{ "type": "number" }, { "type": "number" }],
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "timeline": {
+      "type": "object",
+      "required": ["description", "driver", "tracks"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "driver": { "$ref": "#/$defs/driver" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "tracks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/track" }
+        }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "timelines": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/timeline" }
+    },
+    "interruption": {
+      "type": "object",
+      "required": ["policy"],
+      "properties": {
+        "policy": { "enum": ["reverse", "replace", "complete", "queue", "ignore"] }
+      },
+      "additionalProperties": false
+    },
+    "cancellation": {
+      "type": "object",
+      "required": ["policy"],
+      "properties": {
+        "policy": { "enum": ["source", "target", "nearest", "hold"] }
+      },
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "required": ["from", "to", "on", "interruption", "cancellation"],
+      "properties": {
+        "description": { "type": "string" },
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "on": { "$ref": "#/$defs/id" },
+        "guard": { "type": "string", "minLength": 1 },
+        "timeline": { "$ref": "#/$defs/id" },
+        "mode": { "const": "instant" },
+        "interruption": { "$ref": "#/$defs/interruption" },
+        "cancellation": { "$ref": "#/$defs/cancellation" }
+      },
+      "oneOf": [
+        { "required": ["timeline"], "not": { "required": ["mode"] } },
+        { "required": ["mode"], "not": { "required": ["timeline"] } }
+      ],
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "transitions": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/transition" }
+    },
+    "substitution": {
+      "type": "object",
+      "required": ["mode", "preserves"],
+      "properties": {
+        "mode": { "enum": ["instant", "crossfade", "timeline"] },
+        "timeline": { "$ref": "#/$defs/id" },
+        "preserves": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["state", "content", "focus", "selection", "input", "continuity"] }
+        },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "timeline" } }, "required": ["mode"] },
+          "then": { "required": ["timeline"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "reducedMotion": {
+      "type": "object",
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "enum": ["instant", "substitute", "preserve"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "substitutions": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": { "$ref": "#/$defs/substitution" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "strategy": { "const": "substitute" } }, "required": ["strategy"] },
+          "then": { "required": ["substitutions"] }
+        },
+        {
+          "if": { "properties": { "strategy": { "const": "preserve" } }, "required": ["strategy"] },
+          "then": { "required": ["reason"] }
+        }
+      ],
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "performance": {
+      "type": "object",
+      "required": ["targetFps", "maxMainThreadMsPerFrame", "maxConcurrentTracks", "inputReadyMs", "deterministic"],
+      "properties": {
+        "targetFps": { "type": "integer", "minimum": 1, "maximum": 240 },
+        "maxMainThreadMsPerFrame": { "type": "number", "minimum": 0 },
+        "maxConcurrentTracks": { "type": "integer", "minimum": 1 },
+        "inputReadyMs": { "type": "integer", "minimum": 0 },
+        "allowedProperties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "forbiddenProperties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "deterministic": { "type": "boolean" }
+      },
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["id", "kind", "description"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["authored", "measured", "derived", "research"] },
+        "description": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "license": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "not": { "const": "authored" } } }, "required": ["kind"] },
+          "then": { "required": ["source"] }
+        }
+      ],
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

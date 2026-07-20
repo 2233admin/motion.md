@@ -1,0 +1,8 @@
+.omx/
+work/
+outputs/
+node_modules/
+coverage/
+dist/
+*.log
+.DS_Store

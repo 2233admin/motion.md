@@ -1,0 +1,7 @@
+{
+  "name": "@motion-md/motion-ir",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.mjs",
+  "license": "MIT"
+}

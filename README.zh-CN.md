@@ -6,11 +6,16 @@ A format specification for describing motion design intent and temporal behavior
 
 [English](README.md) · **简体中文**
 
+[规范](docs/spec.md) · [JSON Schema](schemas/motion.schema.json) · [示例](examples) · [v0.1.0 Release](https://github.com/2233admin/motion.md/releases/tag/v0.1.0)
+
 ## 文件格式
 
 一个 `MOTION.md` 文件由两部分组成：YAML front matter 中机器可读的运动语义，以及 Markdown 正文中人类可读的设计意图。
 
 YAML 定义精确的状态、事件、转换、时间线、曲线、中断规则、无障碍替代方案与性能预算。Markdown 解释这些规则为什么存在、运动需要传达什么，以及应该在哪里保持克制。
+
+<details>
+<summary>查看一个最小 <code>MOTION.md</code> 示例</summary>
 
 ```md
 ---
@@ -18,24 +23,18 @@ version: "0.1"
 name: Quiet Feedback
 posture: minimal
 states:
-  idle:
-    description: The control is ready.
-  active:
-    description: The control is selected.
+  idle: { "description": "The control is ready." }
+  active: { "description": "The control is selected." }
 events:
-  activate:
-    description: The user activates the control.
-    source: user
+  activate: { "description": "The user activates the control.", "source": "user" }
 transitions:
   become-active:
     from: idle
     to: active
     on: activate
     mode: instant
-    interruption:
-      policy: replace
-    cancellation:
-      policy: target
+    interruption: { "policy": "replace" }
+    cancellation: { "policy": "target" }
 reducedMotion:
   strategy: instant
 performance:
@@ -77,7 +76,10 @@ provenance:
 ## Provenance
 
 这个运动方向由产品团队原创。
+
 ```
+
+</details>
 
 Agent 读取这个文件后，可以知道哪个状态拥有结果、什么事件触发变化、中断如何处理、Reduced Motion 必须保留什么，以及运行时选择不能破坏哪些性能限制。
 

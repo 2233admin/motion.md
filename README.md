@@ -6,11 +6,16 @@ A format specification for describing motion design intent and temporal behavior
 
 **English** · [简体中文](README.zh-CN.md)
 
+[Specification](docs/spec.md) · [JSON Schema](schemas/motion.schema.json) · [Examples](examples) · [v0.1.0 release](https://github.com/2233admin/motion.md/releases/tag/v0.1.0)
+
 ## The Format
 
 A `MOTION.md` file combines machine-readable motion semantics in YAML front matter with human-readable design intent in Markdown prose.
 
 The YAML defines exact states, events, transitions, timelines, curves, interruption rules, accessibility substitutions, and performance budgets. The prose explains why those rules exist, what the motion should communicate, and where restraint matters.
+
+<details>
+<summary>View a minimal <code>MOTION.md</code> example</summary>
 
 ```md
 ---
@@ -18,24 +23,18 @@ version: "0.1"
 name: Quiet Feedback
 posture: minimal
 states:
-  idle:
-    description: The control is ready.
-  active:
-    description: The control is selected.
+  idle: { "description": "The control is ready." }
+  active: { "description": "The control is selected." }
 events:
-  activate:
-    description: The user activates the control.
-    source: user
+  activate: { "description": "The user activates the control.", "source": "user" }
 transitions:
   become-active:
     from: idle
     to: active
     on: activate
     mode: instant
-    interruption:
-      policy: replace
-    cancellation:
-      policy: target
+    interruption: { "policy": "replace" }
+    cancellation: { "policy": "target" }
 reducedMotion:
   strategy: instant
 performance:
@@ -77,7 +76,10 @@ Input remains available at time zero.
 ## Provenance
 
 This motion direction is authored for the product.
+
 ```
+
+</details>
 
 An agent reading this file knows which state owns the result, which event causes the change, how interruption is resolved, what reduced motion preserves, and which performance limits must survive runtime selection.
 

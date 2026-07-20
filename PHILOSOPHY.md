@@ -22,7 +22,7 @@ This emphasis follows the product philosophy of Google Labs' `design.md`, whose 
 
 ## Motion is a state contract
 
-Animation is an implementation technique. Motion design is the authored relationship between:
+Animation is an implementation technique. `MOTION.md` specifies the authored relationship between:
 
 - a state that exists now;
 - an event or driver that changes it;

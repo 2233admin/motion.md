@@ -1,8 +1,8 @@
 # MOTION.md
 
-A format specification for describing motion design intent and temporal behavior to coding agents. `MOTION.md` gives agents a persistent, structured understanding of how a product moves.
+A format specification for describing motion graphics and frontend animation intent, timing, and behavior to coding agents. `MOTION.md` gives agents a persistent, structured understanding of how a product interface moves.
 
-用于向编程 Agent 描述运动设计意图与时序行为的格式规范。`MOTION.md` 让 Agent 持续、结构化地理解一个产品应该如何运动。
+用于向编程 Agent 描述运动图形（motion graphics）与前端动画（animation）意图、时序和行为的格式规范。`MOTION.md` 让 Agent 持续、结构化地理解产品界面中的动画应该如何呈现、响应和降级。
 
 **English** · [简体中文](README.zh-CN.md)
 

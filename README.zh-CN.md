@@ -1,8 +1,8 @@
 # MOTION.md
 
-用于向编程 Agent 描述运动设计意图与时序行为的格式规范。`MOTION.md` 让 Agent 持续、结构化地理解一个产品应该如何运动。
+用于向编程 Agent 描述运动图形（motion graphics）与前端动画（animation）意图、时序和行为的格式规范。`MOTION.md` 让 Agent 持续、结构化地理解产品界面中的动画应该如何呈现、响应和降级。
 
-A format specification for describing motion design intent and temporal behavior to coding agents. `MOTION.md` gives agents a persistent, structured understanding of how a product moves.
+A format specification for describing motion graphics and frontend animation intent, timing, and behavior to coding agents. `MOTION.md` gives agents a persistent, structured understanding of how a product interface moves.
 
 [English](README.md) · **简体中文**
 
@@ -10,9 +10,9 @@ A format specification for describing motion design intent and temporal behavior
 
 ## 文件格式
 
-一个 `MOTION.md` 文件由两部分组成：YAML front matter 中机器可读的运动语义，以及 Markdown 正文中人类可读的设计意图。
+一个 `MOTION.md` 文件由两部分组成：YAML front matter 中机器可读的动画语义，以及 Markdown 正文中人类与 Agent 可读的运动图形和前端动画意图。
 
-YAML 定义精确的状态、事件、转换、时间线、曲线、中断规则、无障碍替代方案与性能预算。Markdown 解释这些规则为什么存在、运动需要传达什么，以及应该在哪里保持克制。
+YAML 定义精确的状态、事件、转换、时间线、曲线、中断规则、无障碍替代方案与性能预算。Markdown 解释这些规则为什么存在、动画需要传达什么，以及应该在哪里保持克制。
 
 <details>
 <summary>查看一个最小 <code>MOTION.md</code> 示例</summary>
@@ -67,7 +67,7 @@ provenance:
 
 ## Reduced Motion
 
-没有插值运动时，状态与内容仍然清晰可读。
+没有插值动画时，状态与内容仍然清晰可读。
 
 ## Performance
 
@@ -75,7 +75,7 @@ provenance:
 
 ## Provenance
 
-这个运动方向由产品团队原创。
+这套动画行为由产品团队定义。
 
 ```
 
@@ -83,7 +83,7 @@ provenance:
 
 Agent 读取这个文件后，可以知道哪个状态拥有结果、什么事件触发变化、中断如何处理、Reduced Motion 必须保留什么，以及运行时选择不能破坏哪些性能限制。
 
-完整运动系统可以参考[最小](examples/minimal/MOTION.md)、[表现型](examples/expressive/MOTION.md)、[程序化](examples/procedural/MOTION.md)和 [Reduced Motion](examples/reduced-motion/MOTION.md) 示例。
+完整的动画规范可以参考[最小](examples/minimal/MOTION.md)、[表现型](examples/expressive/MOTION.md)、[程序化](examples/procedural/MOTION.md)和 [Reduced Motion](examples/reduced-motion/MOTION.md) 示例。
 
 ## 快速开始
 
@@ -109,7 +109,7 @@ CLI 输出编程 Agent 可以直接处理的结构化 findings：
 }
 ```
 
-比较两个运动系统，检测归一化 Motion IR 与设计理由的变化：
+比较两份动画规范，检测归一化 Motion IR 与动画意图说明的变化：
 
 ```bash
 motionmd diff before/MOTION.md after/MOTION.md
@@ -123,8 +123,8 @@ motionmd diff before/MOTION.md after/MOTION.md
 
 一个 `MOTION.md` 文件包含两个层：
 
-1. **YAML front matter** — 文件顶部由 `---` 分隔的精确运动语义；
-2. **Markdown 正文** — 由 `##` 章节组织的设计意图与理由。
+1. **YAML front matter** — 文件顶部由 `---` 分隔的精确动画语义；
+2. **Markdown 正文** — 由 `##` 章节组织的动画意图与说明。
 
 YAML 对精确数值和图关系具有规范性。Markdown 对意图、优先级、禁用规则和决策理由具有规范性。两者冲突时，合规消费者应报告冲突，而不是静默选择其中一层。
 
@@ -133,7 +133,7 @@ YAML 对精确数值和图关系具有规范性。Markdown 对意图、优先级
 | 字段 | 用途 |
 | --- | --- |
 | `version` | 规范版本 |
-| `name` | 运动系统的人类可读名称 |
+| `name` | 动画规范的人类可读名称 |
 | `posture` | `static`、`minimal`、`expressive` 或 `procedural` |
 | `states` | 产品的语义状态 |
 | `events` | 用户、系统、数据、时间、视口、媒体或传感器输入 |
@@ -180,9 +180,9 @@ Markdown 章节可以省略；已经出现的章节应遵循以下顺序：
 
 | 共享约定 | `DESIGN.md` | `MOTION.md` |
 | --- | --- | --- |
-| 可移植项目文档 | 视觉身份 | 运动意图与时序行为 |
+| 可移植项目文档 | 视觉身份 | 运动图形与前端动画意图、时序行为 |
 | YAML front matter | 精确设计 Token | 精确状态、事件、时间线与预算 |
-| Markdown 正文 | 视觉设计理由 | 运动理由、层级与克制 |
+| Markdown 正文 | 视觉设计理由 | 动画意图说明、层级与克制 |
 | 机器契约 | Schema 与 lint | Schema、lint 与 Motion IR |
 | Agent 工作流 | 读取、校验、导出 | 读取、校验、归一化、比较 |
 

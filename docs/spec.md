@@ -4,7 +4,7 @@ Status: draft. Normative terms **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT*
 
 ## 1. Purpose
 
-`MOTION.md` is a self-contained, plain-text description of a product's motion design intent and temporal behavior. It is intended to remain understandable in source control, portable between tools, and precise enough to normalize into a runtime-neutral Motion IR.
+`MOTION.md` is a self-contained, plain-text description of the intent, timing, and behavior behind a product's motion graphics and frontend animation. It is intended to remain understandable in source control, portable between tools, and precise enough to normalize into a runtime-neutral Motion IR.
 
 The lowercase name `motion.md` refers to this specification and repository. The uppercase filename `MOTION.md` refers to a conforming project-local document.
 

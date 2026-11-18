@@ -187,3 +187,18 @@ test('omitted sections suppress missing-section warnings and are themselves chec
   const noisy = lintMotion(doc({ root: { omitted: ['performance', 'choreography'] } }), files());
   assert.deepEqual(rules(noisy).sort(), ['warning:redundant-omission', 'warning:unknown-omission']);
 });
+
+test('fences with info strings or up to three spaces of indentation are code, not structure', () => {
+  const body = '## Notes\n\n```js title="demo"\n## Motion Thesis\n```\n\n   ~~~\n## Motion Principles\n   ~~~\n';
+  const result = parseMotion(doc({ body }), files());
+  assert.equal(result.summary.errors, 0, JSON.stringify(result.findings));
+});
+
+test('inline and JSON motion tokens in DESIGN.md are read', () => {
+  const inline = '---\nname: Inline\nmotion: {"surface-enter": {"duration": "250ms"}}\n---\n';
+  assert.equal(lintMotion(doc(), files({ 'DESIGN.md': inline })).summary.errors, 0);
+  const json = '---\n{"name": "Json", "motion": {"surface-enter": {"duration": "250ms"}}}\n---\n';
+  assert.equal(lintMotion(doc(), files({ 'DESIGN.md': json })).summary.errors, 0);
+  const nonPortable = '---\nname: Odd\ndescription: >\n  folded text\nmotion:\n  surface-enter:\n    duration: 250ms\n---\n';
+  assert.equal(lintMotion(doc(), files({ 'DESIGN.md': nonPortable })).summary.errors, 0, 'other DESIGN.md YAML may be non-portable');
+});

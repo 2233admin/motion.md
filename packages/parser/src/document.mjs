@@ -1,6 +1,8 @@
 import { YamlLiteError } from './yaml-lite.mjs';
 
-const FENCE = /^(`{3,}|~{3,})\s*([A-Za-z0-9_-]*)\s*$/;
+// CommonMark fences: up to three spaces of indentation; the info string's first word is the language.
+const FENCE_OPEN = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})\s*(.*)$/;
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})\s*$/;
 
 export function splitFrontmatter(source) {
   const normalized = source.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
@@ -22,9 +24,9 @@ function scan(markdown) {
   const out = [];
   let fence = null;
   for (const [index, line] of lines.entries()) {
-    const match = line.match(FENCE);
     if (fence) {
-      if (match && match[1][0] === fence.marker[0] && match[1].length >= fence.marker.length && !match[2]) {
+      const close = line.match(FENCE_CLOSE);
+      if (close && close[1][0] === fence.marker[0] && close[1].length >= fence.marker.length) {
         out.push({ index, line, kind: 'fence-close', fence });
         fence = null;
       } else {
@@ -33,8 +35,9 @@ function scan(markdown) {
       }
       continue;
     }
-    if (match) {
-      fence = { marker: match[1], info: match[2].toLowerCase(), lines: [], startIndex: index };
+    const open = line.match(FENCE_OPEN);
+    if (open) {
+      fence = { marker: open[1], info: (open[2].trim().split(/\s+/)[0] ?? '').toLowerCase(), lines: [], startIndex: index };
       out.push({ index, line, kind: 'fence-open', fence });
       continue;
     }

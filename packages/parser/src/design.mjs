@@ -50,7 +50,7 @@ function parseDuration(value) {
 // its tree, and its other sections may use YAML outside the portable subset.
 function motionBlock(yaml) {
   const lines = yaml.replace(/\r\n?/g, '\n').split('\n');
-  const start = lines.findIndex((line) => /^motion:\s*(#.*)?$/.test(line));
+  const start = lines.findIndex((line) => /^motion:/.test(line));
   if (start < 0) return null;
   let end = start + 1;
   while (end < lines.length && (lines[end].trim() === '' || /^\s/.test(lines[end]) || /^#/.test(lines[end]))) end += 1;
@@ -78,7 +78,16 @@ export function loadDesignMotion(source, designPath) {
   const add = (rule, severity, path, message) => findings.push({ rule, severity, path, message });
   const { yaml, markdown } = splitFrontmatter(source);
   const blocks = [yaml, ...extractYamlBlocks(markdown).map((block) => block.yaml)].filter((text) => text != null);
-  const motionSources = blocks.map(motionBlock).filter(Boolean);
+  // Prefer the whole block when it is portable (covers JSON front matter); otherwise read
+  // only the motion key so the rest of DESIGN.md may use any YAML.
+  const motionSources = blocks.map((text) => {
+    try {
+      const whole = parseYaml(text);
+      return whole && Object.hasOwn(whole, 'motion') ? `motion: ${JSON.stringify(whole.motion)}` : null;
+    } catch {
+      return motionBlock(text);
+    }
+  }).filter(Boolean);
 
   if (motionSources.length > 1) add('design-motion', 'error', '/design', `${designPath} defines the motion key more than once.`);
   if (motionSources.length === 1) {

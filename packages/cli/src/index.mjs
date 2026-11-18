@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { diffMotion, stableStringify } from '../../motion-ir/src/index.mjs';
 import { lintMotion, parseMotion } from '../../parser/src/index.mjs';
 
@@ -13,12 +13,17 @@ function readInput(path) {
 
 // Resolve references from the MOTION.md directory (cwd for stdin), never outside it.
 function resolverFor(path) {
-  const base = path === '-' ? process.cwd() : dirname(resolve(process.cwd(), path));
+  const base = realpathSync(path === '-' ? process.cwd() : dirname(resolve(process.cwd(), path)));
+  const contained = (target) => {
+    const inside = relative(base, target);
+    return inside !== '' && inside !== '..' && !inside.startsWith(`..${sep}`) && !isAbsolute(inside);
+  };
   return (relativePath) => {
     const target = resolve(base, relativePath);
-    const inside = relative(base, target);
-    if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) return null;
-    return existsSync(target) && statSync(target).isFile() ? readFileSync(target, 'utf8') : null;
+    if (!contained(target) || !existsSync(target)) return null;
+    // Follow symlinks before trusting containment.
+    const real = realpathSync(target);
+    return contained(real) && statSync(real).isFile() ? readFileSync(real, 'utf8') : null;
   };
 }
 

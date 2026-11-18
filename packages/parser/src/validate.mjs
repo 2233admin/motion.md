@@ -119,6 +119,10 @@ function validateOmitted(findings, omitted, headings) {
   omitted.forEach((entry, index) => {
     const path = `/omitted/${index}`;
     const section = typeof entry === 'string' ? entry : entry?.section;
+    if (typeof section !== 'string') {
+      add(findings, 'type', 'error', path, 'Omitted entries must be a section key or { section, reason }.');
+      return;
+    }
     if (isObject(entry)) {
       unknownKeys(findings, entry, new Set(['section', 'reason']), path);
       if (entry.reason !== undefined) requireString(findings, entry.reason, `${path}/reason`);

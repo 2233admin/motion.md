@@ -20,12 +20,14 @@ const JUMPS = {
 export function parseTimingFunction(input) {
   const value = String(input).trim();
   if (value === 'linear') return { type: 'linear' };
-  if (KEYWORDS[value]) return { type: 'cubic-bezier', value: KEYWORDS[value] };
+  if (Object.hasOwn(KEYWORDS, value)) return { type: 'cubic-bezier', value: KEYWORDS[value] };
   if (value === 'step-start') return { type: 'steps', count: 1, jump: 'start' };
   if (value === 'step-end') return { type: 'steps', count: 1, jump: 'end' };
   let match = value.match(/^cubic-bezier\(([^)]*)\)$/);
   if (match) {
-    const numbers = match[1].split(',').map((part) => Number(part.trim()));
+    const parts = match[1].split(',').map((part) => part.trim());
+    if (parts.some((part) => !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/.test(part))) return null;
+    const numbers = parts.map(Number);
     if (numbers.length !== 4 || numbers.some((n) => !Number.isFinite(n))) return null;
     if (numbers[0] < 0 || numbers[0] > 1 || numbers[2] < 0 || numbers[2] > 1) return null;
     return { type: 'cubic-bezier', value: numbers };
@@ -33,7 +35,8 @@ export function parseTimingFunction(input) {
   match = value.match(/^steps\(\s*(\d+)\s*(?:,\s*([a-z-]+)\s*)?\)$/);
   if (match) {
     const count = Number(match[1]);
-    const jump = JUMPS[match[2] ?? 'end'];
+    const keyword = match[2] ?? 'end';
+    const jump = Object.hasOwn(JUMPS, keyword) ? JUMPS[keyword] : undefined;
     if (!jump || count < 1 || (jump === 'none' && count < 2)) return null;
     return { type: 'steps', count, jump };
   }

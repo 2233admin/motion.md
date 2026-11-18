@@ -35,7 +35,7 @@ A fully authored document SHOULD include these `##` sections in this order:
 
 Unknown sections MUST be preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous. A prose-only document is valid but produces a `missing-machine-data` warning and cannot yield a complete Motion IR.
 
-A section that is deliberately absent is declared in `omitted`, either as a section key or as `{ section, reason }`. Section keys are the lower kebab-case headings: `motion-thesis`, `motion-principles`, `hierarchy-and-choreography`, `interruption`, `reduced-motion`, `performance`, `provenance`. A declared omission suppresses the `missing-section` warning. An unknown key produces `unknown-omission`; a key whose section is present produces `redundant-omission`. `omitted` covers prose only: required machine fields such as `reducedMotion` and `performance` cannot be omitted.
+A section that is deliberately absent is declared in `omitted`, either as a section key or as `{ section, reason }`. Section keys are the lower kebab-case headings: `motion-thesis`, `motion-principles`, `hierarchy-and-choreography`, `interruption`, `reduced-motion`, `performance`, `provenance`. A declared omission suppresses the `missing-section` warning. An unknown key produces `unknown-omission` (a warning, so schema-valid); a key whose section is present produces `redundant-omission`. `omitted` covers prose only: required machine fields such as `reducedMotion` and `performance` cannot be omitted.
 
 ```yaml
 omitted:
@@ -139,7 +139,7 @@ A referenced token resolves as follows:
 
 ### 7.4 Single source of truth
 
-When a track declares a literal `durationMs` and a `curve` that together equal a bound token, the linter reports `prefer-design-token` (`info`) so the literal can be replaced with a reference.
+When a track declares a literal `durationMs` and a `curve` that together equal a bound token whose delay is zero, the linter reports `prefer-design-token` (`info`) so the literal can be replaced with a reference.
 
 ## 8. Timelines and tracks
 

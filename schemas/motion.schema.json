@@ -12,18 +12,18 @@
     "design": {
       "type": "string",
       "pattern": "^(?!/)(?![A-Za-z]:)[^\\s\\\\]*\\.md$",
-      "description": "Relative path to the DESIGN.md whose motion tokens this document references. Resolved from the MOTION.md directory; must not leave it."
+      "description": "Relative path to the DESIGN.md whose motion tokens this document references. Resolved from the MOTION.md directory; must not leave it. The pattern cannot express containment, so `..` escapes are rejected by the linter (design-path)."
     },
     "omitted": {
       "type": "array",
       "items": {
         "anyOf": [
-          { "$ref": "#/$defs/sectionKey" },
+          { "type": "string", "minLength": 1 },
           {
             "type": "object",
             "required": ["section"],
             "properties": {
-              "section": { "$ref": "#/$defs/sectionKey" },
+              "section": { "type": "string", "minLength": 1 },
               "reason": { "type": "string", "minLength": 1 }
             },
             "additionalProperties": false
@@ -69,9 +69,6 @@
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$"
-    },
-    "sectionKey": {
-      "enum": ["motion-thesis", "motion-principles", "hierarchy-and-choreography", "interruption", "reduced-motion", "performance", "provenance"]
     },
     "timingRef": {
       "type": "string",

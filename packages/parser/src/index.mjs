@@ -81,7 +81,8 @@ function bindDesign(frontmatter, resolveFile, findings) {
       const curve = frontmatter.curves?.[track.curve];
       if (!curve) return;
       for (const [tokenPath, token] of loaded.tokens) {
-        if (token.durationMs === track.durationMs && stableStringify(token.curve) === stableStringify(curve)) {
+        // A delayed token would move the track's start, so only an exact equivalent is suggested.
+        if (token.delayMs === 0 && token.durationMs === track.durationMs && stableStringify(token.curve) === stableStringify(curve)) {
           add(findings, 'prefer-design-token', 'info', `/timelines/${id}/tracks/${index}`, `Duration and curve equal {${tokenPath}}; reference it with timing instead.`);
           break;
         }

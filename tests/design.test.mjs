@@ -106,7 +106,7 @@ test('timing and literal timing fields together are two sources of truth', () =>
 });
 
 test('literal values equal to a design token produce an info finding', () => {
-  const result = lintMotion(doc({ track: { durationMs: 250, curve: 'standard' } }), files());
+  const result = lintMotion(doc({ track: { durationMs: 250, curve: 'standard' } }), files({ 'DESIGN.md': DESIGN.replace('delay: 40ms', 'delay: 0ms') }));
   assert.deepEqual(rules(result), ['info:prefer-design-token']);
 });
 
@@ -201,4 +201,10 @@ test('inline and JSON motion tokens in DESIGN.md are read', () => {
   assert.equal(lintMotion(doc(), files({ 'DESIGN.md': json })).summary.errors, 0);
   const nonPortable = '---\nname: Odd\ndescription: >\n  folded text\nmotion:\n  surface-enter:\n    duration: 250ms\n---\n';
   assert.equal(lintMotion(doc(), files({ 'DESIGN.md': nonPortable })).summary.errors, 0, 'other DESIGN.md YAML may be non-portable');
+});
+
+test('review hardening: delayed tokens are not suggested, malformed easing and omissions are rejected', () => {
+  assert.deepEqual(rules(lintMotion(doc({ track: { durationMs: 250, curve: 'standard' } }), files())), [], 'token delay 40ms would move the start');
+  for (const value of ['constructor', 'cubic-bezier(, 0, , 1)', 'steps(2, constructor)']) assert.equal(parseTimingFunction(value), null, value);
+  assert.ok(rules(lintMotion(doc({ root: { omitted: [null] } }), files())).includes('error:type'));
 });

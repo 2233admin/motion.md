@@ -26,7 +26,7 @@ export function parseTimingFunction(input) {
   let match = value.match(/^cubic-bezier\(([^)]*)\)$/);
   if (match) {
     const parts = match[1].split(',').map((part) => part.trim());
-    if (parts.some((part) => !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/.test(part))) return null;
+    if (parts.some((part) => !/^[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?$/.test(part))) return null;
     const numbers = parts.map(Number);
     if (numbers.length !== 4 || numbers.some((n) => !Number.isFinite(n))) return null;
     if (numbers[0] < 0 || numbers[0] > 1 || numbers[2] < 0 || numbers[2] > 1) return null;
@@ -92,7 +92,8 @@ export function loadDesignMotion(source, designPath) {
     }
   }).filter(Boolean);
 
-  if (motionSources.length > 1) add('design-motion', 'error', '/design', `${designPath} defines the motion key more than once.`);
+  const repeated = blocks.some((text) => text.replace(/\r\n?/g, '\n').split('\n').filter((line) => /^motion:/.test(line)).length > 1);
+  if (motionSources.length > 1 || repeated) add('design-motion', 'error', '/design', `${designPath} defines the motion key more than once.`);
   if (motionSources.length === 1) {
     let raw;
     try {

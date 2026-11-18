@@ -208,3 +208,9 @@ test('review hardening: delayed tokens are not suggested, malformed easing and o
   for (const value of ['constructor', 'cubic-bezier(, 0, , 1)', 'steps(2, constructor)']) assert.equal(parseTimingFunction(value), null, value);
   assert.ok(rules(lintMotion(doc({ root: { omitted: [null] } }), files())).includes('error:type'));
 });
+
+test('trailing-dot numbers and repeated motion keys in one block are rejected', () => {
+  assert.equal(parseTimingFunction('cubic-bezier(0, 1., 0, 1)'), null);
+  const repeated = '---\nname: Twice\nmotion:\n  surface-enter:\n    duration: 250ms\nmotion:\n  other:\n    duration: 1ms\n---\n';
+  assert.ok(rules(lintMotion(doc(), files({ 'DESIGN.md': repeated }))).includes('error:design-motion'));
+});

@@ -1,14 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://motion.md/schemas/motion.schema.json",
-  "title": "MOTION.md front matter v0.1",
+  "title": "MOTION.md machine data v0.2",
   "type": "object",
   "required": ["version", "name", "posture", "reducedMotion", "performance", "provenance"],
   "properties": {
-    "version": { "const": "0.1" },
+    "version": { "const": "0.2" },
     "name": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "posture": { "enum": ["static", "minimal", "expressive", "procedural"] },
+    "design": {
+      "type": "string",
+      "pattern": "^(?!/)(?![A-Za-z]:)[^\\s\\\\]*\\.md$",
+      "description": "Relative path to the DESIGN.md whose motion tokens this document references. Resolved from the MOTION.md directory; must not leave it."
+    },
+    "omitted": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/sectionKey" },
+          {
+            "type": "object",
+            "required": ["section"],
+            "properties": {
+              "section": { "$ref": "#/$defs/sectionKey" },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
     "defaults": { "$ref": "#/$defs/defaults" },
     "states": { "$ref": "#/$defs/states" },
     "events": { "$ref": "#/$defs/events" },
@@ -48,6 +70,14 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$"
     },
+    "sectionKey": {
+      "enum": ["motion-thesis", "motion-principles", "hierarchy-and-choreography", "interruption", "reduced-motion", "performance", "provenance"]
+    },
+    "timingRef": {
+      "type": "string",
+      "pattern": "^\\{motion(\\.[a-z][a-z0-9-]*)+\\}$",
+      "description": "Reference to a DESIGN.md motion token. Replaces the literal duration and curve fields it would duplicate."
+    },
     "jsonValue": {
       "anyOf": [
         { "type": ["string", "number", "boolean", "null"] },
@@ -61,6 +91,7 @@
     "defaults": {
       "type": "object",
       "properties": {
+        "timing": { "$ref": "#/$defs/timingRef" },
         "durationMs": { "type": "integer", "minimum": 0 },
         "delayMs": { "type": "integer", "minimum": 0 },
         "curve": { "$ref": "#/$defs/id" }
@@ -68,7 +99,11 @@
       "patternProperties": {
         "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": { "required": ["timing"] },
+      "then": {
+        "not": { "anyOf": [{ "required": ["durationMs"] }, { "required": ["delayMs"] }, { "required": ["curve"] }] }
+      }
     },
     "state": {
       "type": "object",
@@ -240,6 +275,7 @@
       "properties": {
         "target": { "$ref": "#/$defs/id" },
         "property": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$" },
+        "timing": { "$ref": "#/$defs/timingRef" },
         "curve": { "$ref": "#/$defs/id" },
         "startMs": { "type": "integer", "minimum": 0 },
         "durationMs": { "type": "integer", "minimum": 0 },
@@ -252,7 +288,11 @@
       "patternProperties": {
         "^x-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/jsonValue" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": { "required": ["timing"] },
+      "then": {
+        "not": { "anyOf": [{ "required": ["durationMs"] }, { "required": ["curve"] }] }
+      }
     },
     "driver": {
       "type": "object",

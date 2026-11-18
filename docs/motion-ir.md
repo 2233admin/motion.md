@@ -1,4 +1,4 @@
-# Motion IR v0.1
+# Motion IR v0.2
 
 Motion IR is the stable, runtime-neutral output of parsing a `MOTION.md`. It is an interchange boundary, not an executable timeline.
 
@@ -14,34 +14,45 @@ Motion IR is the stable, runtime-neutral output of parsing a `MOTION.md`. It is 
 
 ```json
 {
-  "irVersion": "0.1",
-  "specification": "motion.md/0.1",
+  "irVersion": "0.2",
+  "specification": "motion.md/0.2",
   "document": {
     "name": "Example",
     "description": "...",
     "posture": "minimal"
   },
+  "design": { "path": "DESIGN.md", "sourceHash": "sha256…" },
   "defaults": {},
   "graph": {
     "states": [{ "id": "closed", "description": "..." }],
     "events": [{ "id": "activate", "description": "...", "source": "user" }],
     "transitions": [{ "id": "open", "from": "closed", "to": "open", "on": "activate" }]
   },
-  "curves": [{ "id": "standard", "type": "cubic-bezier", "value": [0.2, 0, 0, 1] }],
-  "timelines": [{ "id": "reveal", "driver": { "type": "clock" }, "tracks": [] }],
+  "curves": [
+    { "id": "motion.surface-enter", "origin": "design", "type": "cubic-bezier", "value": [0.2, 0, 0, 1] },
+    { "id": "standard", "type": "cubic-bezier", "value": [0.2, 0, 0, 1] }
+  ],
+  "timelines": [{
+    "id": "reveal",
+    "driver": { "type": "clock" },
+    "tracks": [{ "target": "panel", "property": "visual.opacity", "timing": "motion.surface-enter", "curve": "motion.surface-enter", "durationMs": 250, "startMs": 0, "keyframes": [] }]
+  }],
   "policies": {
     "reducedMotion": {},
     "performance": {}
   },
   "provenance": [],
   "intent": {
+    "omitted": [{ "section": "hierarchy-and-choreography", "reason": "..." }],
     "sections": [{ "heading": "Motion Thesis", "content": "..." }]
   },
   "extensions": {}
 }
 ```
 
-Named mappings are converted to arrays sorted by `id`. Track and keyframe arrays preserve authored order because order is semantic. Extension keys are collected without interpretation.
+Named mappings are converted to arrays sorted by `id`.
+
+`timing` references are resolved before emission, so adapters never read `DESIGN.md`. A resolved track carries concrete `durationMs` and `startMs`, keeps the token path in `timing`, and names its curve by that same path. Each referenced token contributes one curve record with `origin: "design"`; its dotted id cannot collide with a local kebab-case curve id. `design.sourceHash` pins the exact `DESIGN.md` bytes, so a token change shows up in the semantic diff both as changed values and as a changed hash. Track and keyframe arrays preserve authored order because order is semantic. Extension keys are collected without interpretation.
 
 ## Capability negotiation
 
@@ -59,4 +70,4 @@ Breaking changes include:
 - removing a provenance entry;
 - changing the declared specification version.
 
-Other value changes are reported as modifications but are not automatically classified as breaking in v0.1. Consumers may apply stricter release policy.
+Other value changes are reported as modifications but are not automatically classified as breaking. Consumers may apply stricter release policy.

@@ -16,8 +16,8 @@ test('all four reference documents parse into Motion IR without findings', () =>
   ]) {
     const result = parseMotion(read(path));
     assert.deepEqual(result.summary, { errors: 0, info: 0, warnings: 0 }, path);
-    assert.equal(result.ir.irVersion, '0.1');
-    assert.equal(result.ir.specification, 'motion.md/0.1');
+    assert.equal(result.ir.irVersion, '0.2');
+    assert.equal(result.ir.specification, 'motion.md/0.2');
   }
 });
 
@@ -76,5 +76,5 @@ test('URL scalars in sequences are not misread as mappings', () => {
 test('prose-only documents remain readable but warn about incomplete machine semantics', () => {
   const result = lintMotion('## Motion Thesis\n\nStillness is deliberate.\n');
   assert.equal(result.summary.errors, 0);
-  assert.ok(result.findings.some((finding) => finding.rule === 'missing-frontmatter'));
+  assert.ok(result.findings.some((finding) => finding.rule === 'missing-machine-data'));
 });

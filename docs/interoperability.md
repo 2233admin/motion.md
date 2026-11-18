@@ -2,9 +2,22 @@
 
 ## DESIGN.md
 
-`DESIGN.md` describes visual identity and design rationale. `MOTION.md` describes behavior in time. A product may use either or both.
+Since November 2026, `DESIGN.md` has its own `## Motion & Micro-interaction` section and `motion` tokens (`duration`, `delay`, `timingFunction`). The split is:
 
-`MOTION.md` MAY refer to semantic concepts established by `DESIGN.md` in prose or namespaced extensions. It MUST NOT duplicate color, typography, spacing, component, or other visual-token systems as a competing source of truth. The v0.1 core defines no cross-file reference syntax; consumers own resolution and conflict reporting.
+| Concern | Owner |
+| --- | --- |
+| Brand motion tone ("quick and understated", "nothing loops") | `DESIGN.md` prose |
+| Timing vocabulary: purpose-named durations, delays, easing | `DESIGN.md` `motion` tokens |
+| Which states change, and on which event | `MOTION.md` |
+| Which targets and properties move, and in what order | `MOTION.md` timelines |
+| Interruption and cancellation | `MOTION.md` |
+| Reduced-motion substitutions and what they preserve | `MOTION.md` |
+| Performance budgets and deterministic playback | `MOTION.md` |
+| Springs, scroll/pointer drivers, procedural curves | `MOTION.md` (no `DESIGN.md` equivalent) |
+
+`MOTION.md` binds to a `DESIGN.md` with `design` and references its tokens with `timing: "{motion.<token>}"` (spec section 7). It MUST NOT restate token values, and it MUST NOT duplicate color, typography, spacing, component, or other visual tokens. A project with only `DESIGN.md` motion tokens has a vocabulary but no behavior contract; a project with only `MOTION.md` declares its own curves locally.
+
+The two files use the same document conventions so one toolchain can read both: YAML front matter or interleaved ` ```yaml ` blocks, `##` sections, `omitted`, `{…}` token references, and `` `@path#fragment` `` external references resolved from the file's own directory.
 
 ## Designer Pipeline
 
@@ -22,9 +35,9 @@ The Pipeline MUST consume parsed Motion IR rather than maintaining a divergent p
 
 ```json
 {
-  "motionSpec": "0.1",
+  "motionSpec": "0.2",
   "schema": "schemas/motion.schema.json",
-  "requiredIr": "0.1"
+  "requiredIr": "0.2"
 }
 ```
 

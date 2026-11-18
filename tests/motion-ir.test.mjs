@@ -4,7 +4,7 @@ import { diffMotion, normalizeMotion, stableStringify } from '../packages/motion
 
 function document(overrides = {}) {
   return {
-    version: '0.1',
+    version: '0.2',
     name: 'Example',
     posture: 'minimal',
     states: {

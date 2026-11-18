@@ -1,7 +1,11 @@
+import { isSafeRelativePath, TIMING_REF } from './design.mjs';
+
 const ID = /^[a-z][a-z0-9-]*$/;
+const CANONICAL_SECTIONS = ['Motion Thesis', 'Motion Principles', 'Hierarchy and Choreography', 'Interruption', 'Reduced Motion', 'Performance', 'Provenance'];
+const sectionKey = (heading) => heading.toLowerCase().replace(/\s+/g, '-');
 const PROPERTY = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;
 const ROOT_KEYS = new Set([
-  'version', 'name', 'description', 'posture', 'defaults', 'states', 'events', 'curves',
+  'version', 'name', 'description', 'posture', 'design', 'omitted', 'defaults', 'states', 'events', 'curves',
   'timelines', 'transitions', 'reducedMotion', 'performance', 'provenance',
 ]);
 
@@ -96,13 +100,50 @@ function validateCurve(findings, curve, path) {
   }
 }
 
+// `timing` references a DESIGN.md motion token; it replaces the literal fields it would
+// otherwise duplicate, so both together are two sources of truth.
+function validateTiming(findings, owner, path, replaced) {
+  if (owner.timing === undefined) return;
+  if (typeof owner.timing !== 'string' || !TIMING_REF.test(owner.timing)) {
+    add(findings, 'timing-ref', 'error', `${path}/timing`, 'Timing must reference a design motion token such as "{motion.surface-enter}".');
+  }
+  for (const field of replaced) if (owner[field] !== undefined) add(findings, 'timing-conflict', 'error', `${path}/${field}`, `${field} duplicates the referenced timing token.`);
+}
+
+function validateOmitted(findings, omitted, headings) {
+  if (!Array.isArray(omitted)) {
+    add(findings, 'type', 'error', '/omitted', 'Omitted must be an array.');
+    return new Set();
+  }
+  const declared = new Set();
+  omitted.forEach((entry, index) => {
+    const path = `/omitted/${index}`;
+    const section = typeof entry === 'string' ? entry : entry?.section;
+    if (isObject(entry)) {
+      unknownKeys(findings, entry, new Set(['section', 'reason']), path);
+      if (entry.reason !== undefined) requireString(findings, entry.reason, `${path}/reason`);
+    }
+    const canonical = CANONICAL_SECTIONS.find((heading) => sectionKey(heading) === section);
+    if (!canonical) {
+      add(findings, 'unknown-omission', 'warning', path, `Unknown section key ${section}; use one of ${CANONICAL_SECTIONS.map(sectionKey).join(', ')}.`);
+      return;
+    }
+    if (headings.includes(canonical)) add(findings, 'redundant-omission', 'warning', path, `${canonical} is declared omitted but present.`);
+    declared.add(canonical);
+  });
+  return declared;
+}
+
 export function validateMotion(frontmatter, sections) {
   const findings = [];
   if (!frontmatter) {
-    add(findings, 'missing-frontmatter', 'warning', '/', 'Document has no machine-readable front matter.');
+    add(findings, 'missing-machine-data', 'warning', '/', 'Document has no machine-readable front matter or yaml blocks.');
   } else {
     unknownKeys(findings, frontmatter, ROOT_KEYS, '');
-    if (frontmatter.version !== '0.1') add(findings, 'spec-version', 'error', '/version', 'v0.1 documents must declare version "0.1".');
+    if (frontmatter.version !== '0.2') add(findings, 'spec-version', 'error', '/version', 'v0.2 documents must declare version "0.2".');
+    if (frontmatter.design !== undefined && (!isSafeRelativePath(frontmatter.design) || !/\.md$/i.test(frontmatter.design))) {
+      add(findings, 'design-path', 'error', '/design', 'Design must be a relative path to a .md file inside the MOTION.md directory.');
+    }
     requireString(findings, frontmatter.name, '/name');
     if (!['static', 'minimal', 'expressive', 'procedural'].includes(frontmatter.posture)) add(findings, 'posture', 'error', '/posture', 'Posture must be static, minimal, expressive, or procedural.');
 
@@ -119,7 +160,8 @@ export function validateMotion(frontmatter, sections) {
     }
 
     if (frontmatter.defaults !== undefined && requireObject(findings, frontmatter.defaults, '/defaults')) {
-      unknownKeys(findings, frontmatter.defaults, new Set(['durationMs', 'delayMs', 'curve']), '/defaults');
+      unknownKeys(findings, frontmatter.defaults, new Set(['timing', 'durationMs', 'delayMs', 'curve']), '/defaults');
+      validateTiming(findings, frontmatter.defaults, '/defaults', ['durationMs', 'delayMs', 'curve']);
       for (const field of ['durationMs', 'delayMs']) if (frontmatter.defaults[field] !== undefined && (!Number.isInteger(frontmatter.defaults[field]) || frontmatter.defaults[field] < 0)) add(findings, 'time-value', 'error', `/defaults/${field}`, 'Time values must be non-negative integer milliseconds.');
       if (frontmatter.defaults.curve && !curveIds.has(frontmatter.defaults.curve)) add(findings, 'broken-ref', 'error', '/defaults/curve', 'Default curve reference does not exist.');
     }
@@ -160,7 +202,8 @@ export function validateMotion(frontmatter, sections) {
       timeline.tracks.forEach((track, index) => {
         const trackPath = `${path}/tracks/${index}`;
         if (!requireObject(findings, track, trackPath)) return;
-        unknownKeys(findings, track, new Set(['target', 'property', 'curve', 'startMs', 'durationMs', 'keyframes']), trackPath);
+        unknownKeys(findings, track, new Set(['target', 'property', 'timing', 'curve', 'startMs', 'durationMs', 'keyframes']), trackPath);
+        validateTiming(findings, track, trackPath, ['durationMs', 'curve']);
         if (!ID.test(track.target ?? '')) add(findings, 'identifier', 'error', `${trackPath}/target`, 'Track target must use lower kebab-case.');
         if (!PROPERTY.test(track.property ?? '')) add(findings, 'property-path', 'error', `${trackPath}/property`, 'Property must be a runtime-neutral dotted path.');
         if (track.curve && !curveIds.has(track.curve)) add(findings, 'broken-ref', 'error', `${trackPath}/curve`, 'Track curve reference does not exist.');
@@ -255,9 +298,10 @@ export function validateMotion(frontmatter, sections) {
     }
   }
 
-  const canonical = ['Motion Thesis', 'Motion Principles', 'Hierarchy and Choreography', 'Interruption', 'Reduced Motion', 'Performance', 'Provenance'];
+  const canonical = CANONICAL_SECTIONS;
   const headings = sections.map((section) => section.heading);
-  for (const required of canonical) if (!headings.includes(required)) add(findings, 'missing-section', 'warning', `/sections/${required}`, `Recommended section is missing: ${required}.`);
+  const omitted = frontmatter?.omitted === undefined ? new Set() : validateOmitted(findings, frontmatter.omitted, headings);
+  for (const required of canonical) if (!headings.includes(required) && !omitted.has(required)) add(findings, 'missing-section', 'warning', `/sections/${required}`, `Recommended section is missing: ${required}.`);
   let last = -1;
   for (const heading of headings) {
     const position = canonical.indexOf(heading);

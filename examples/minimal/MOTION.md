@@ -1,5 +1,5 @@
 ---
-version: "0.1"
+version: "0.2"
 name: Quiet Control Surface
 description: Immediate operational feedback with short distance and no decorative entrance motion.
 posture: minimal

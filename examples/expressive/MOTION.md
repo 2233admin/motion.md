@@ -1,5 +1,5 @@
 ---
-version: "0.1"
+version: "0.2"
 name: Editorial Reveal
 description: A confident editorial expansion with one hero beat and restrained supporting motion.
 posture: expressive

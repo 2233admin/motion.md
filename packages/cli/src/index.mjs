@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { diffMotion, stableStringify } from '../../motion-ir/src/index.mjs';
 import { lintMotion, parseMotion } from '../../parser/src/index.mjs';
 
@@ -9,6 +9,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 function readInput(path) {
   if (path === '-') return readFileSync(0, 'utf8');
   return readFileSync(resolve(process.cwd(), path), 'utf8');
+}
+
+// Resolve references from the MOTION.md directory (cwd for stdin), never outside it.
+function resolverFor(path) {
+  const base = path === '-' ? process.cwd() : dirname(resolve(process.cwd(), path));
+  return (relativePath) => {
+    const target = resolve(base, relativePath);
+    const inside = relative(base, target);
+    if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) return null;
+    return existsSync(target) && statSync(target).isFile() ? readFileSync(target, 'utf8') : null;
+  };
 }
 
 function option(args, name, fallback) {
@@ -46,7 +57,8 @@ export function run(argv, io = { stdout: process.stdout, stderr: process.stderr 
       const path = args.find((arg) => !arg.startsWith('--'));
       if (!path) throw new Error(`${command} requires a file path or -`);
       const source = readInput(path);
-      const result = command === 'lint' ? lintMotion(source) : parseMotion(source);
+      const options = { resolveFile: resolverFor(path) };
+      const result = command === 'lint' ? lintMotion(source, options) : parseMotion(source, options);
       emit(io, result);
       return result.summary.errors > 0 ? 1 : 0;
     }
@@ -54,8 +66,8 @@ export function run(argv, io = { stdout: process.stdout, stderr: process.stderr 
     if (command === 'diff') {
       const paths = args.filter((arg) => !arg.startsWith('--'));
       if (paths.length !== 2) throw new Error('diff requires before and after file paths');
-      const before = parseMotion(readInput(paths[0]));
-      const after = parseMotion(readInput(paths[1]));
+      const before = parseMotion(readInput(paths[0]), { resolveFile: resolverFor(paths[0]) });
+      const after = parseMotion(readInput(paths[1]), { resolveFile: resolverFor(paths[1]) });
       if (before.summary.errors || after.summary.errors) {
         emit(io, {
           error: 'Both documents must be valid before semantic diffing.',

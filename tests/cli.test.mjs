@@ -39,7 +39,7 @@ test('diff is formatting-neutral and reports no changes for identical documents'
 test('spec emits Markdown and JSON Schema', () => {
   const markdown = run('spec');
   assert.equal(markdown.status, 0, markdown.stderr);
-  assert.match(markdown.stdout, /MOTION\.md Format Specification v0\.1/);
+  assert.match(markdown.stdout, /MOTION\.md Format Specification v0\.2/);
 
   const schema = run('spec', '--format', 'json');
   assert.equal(schema.status, 0, schema.stderr);
@@ -49,4 +49,12 @@ test('spec emits Markdown and JSON Schema', () => {
 test('schema source is valid JSON', () => {
   const schema = JSON.parse(readFileSync(resolve(root, 'schemas/motion.schema.json'), 'utf8'));
   assert.equal(schema.$id, 'https://motion.md/schemas/motion.schema.json');
+});
+
+test('lint and parse resolve design tokens relative to the input file', () => {
+  const lint = run('lint', 'examples/design-bound/MOTION.md');
+  assert.equal(lint.status, 0, lint.stderr);
+  assert.deepEqual(JSON.parse(lint.stdout).summary, { errors: 0, info: 0, warnings: 0 });
+  const parse = run('parse', 'examples/design-bound/MOTION.md');
+  assert.equal(JSON.parse(parse.stdout).ir.design.path, 'DESIGN.md');
 });

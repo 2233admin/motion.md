@@ -29,25 +29,60 @@ function extensionsOf(value = {}) {
   );
 }
 
-export function normalizeMotion(frontmatter, sections = []) {
+const tokenPath = (ref) => ref.slice(1, -1);
+
+// Replace `timing` references with the DESIGN.md values they name. The token path stays on
+// the record so adapters and diffs can see where the values came from.
+function resolveTimelines(timelines = {}, design) {
+  return Object.fromEntries(Object.entries(timelines).map(([id, timeline]) => [id, {
+    ...timeline,
+    tracks: (timeline.tracks ?? []).map((track) => {
+      if (track.timing === undefined || !design) return track;
+      const path = tokenPath(track.timing);
+      const token = design.tokens.get(path);
+      return { ...track, timing: path, curve: path, durationMs: token.durationMs, startMs: (track.startMs ?? 0) + token.delayMs };
+    }),
+  }]));
+}
+
+function resolveDefaults(defaults = {}, design) {
+  if (defaults.timing === undefined || !design) return defaults;
+  const path = tokenPath(defaults.timing);
+  const token = design.tokens.get(path);
+  return { ...defaults, timing: path, curve: path, durationMs: token.durationMs, delayMs: token.delayMs };
+}
+
+function designCurves(frontmatter, design) {
+  if (!design) return [];
+  const used = new Set();
+  if (frontmatter.defaults?.timing) used.add(tokenPath(frontmatter.defaults.timing));
+  for (const timeline of Object.values(frontmatter.timelines ?? {})) {
+    for (const track of timeline.tracks ?? []) if (track.timing) used.add(tokenPath(track.timing));
+  }
+  return [...used].sort().map((path) => stableValue({ id: path, origin: 'design', ...design.tokens.get(path).curve }));
+}
+
+export function normalizeMotion(frontmatter, sections = [], design = null) {
   if (!frontmatter) return null;
 
   return stableValue({
-    irVersion: '0.1',
+    irVersion: '0.2',
     specification: `motion.md/${frontmatter.version ?? 'unknown'}`,
     document: {
       name: frontmatter.name ?? null,
       description: frontmatter.description ?? null,
       posture: frontmatter.posture ?? null,
     },
-    defaults: frontmatter.defaults ?? {},
+    design: design ? { path: design.path, sourceHash: design.sourceHash } : null,
+    defaults: resolveDefaults(frontmatter.defaults, design),
     graph: {
       states: namedRecords(frontmatter.states),
       events: namedRecords(frontmatter.events),
       transitions: namedRecords(frontmatter.transitions),
     },
-    curves: namedRecords(frontmatter.curves),
-    timelines: namedRecords(frontmatter.timelines),
+    curves: [...namedRecords(frontmatter.curves), ...designCurves(frontmatter, design)]
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    timelines: namedRecords(resolveTimelines(frontmatter.timelines, design)),
     policies: {
       reducedMotion: frontmatter.reducedMotion ?? null,
       performance: frontmatter.performance ?? null,
@@ -56,6 +91,7 @@ export function normalizeMotion(frontmatter, sections = []) {
       .map(stableValue)
       .sort((left, right) => String(left.id).localeCompare(String(right.id))),
     intent: {
+      omitted: (frontmatter.omitted ?? []).map((entry) => (typeof entry === 'string' ? { section: entry } : entry)),
       sections: sections.map(({ heading, content }) => ({ heading, content })),
     },
     extensions: extensionsOf(frontmatter),

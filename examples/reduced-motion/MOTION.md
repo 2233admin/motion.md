@@ -1,5 +1,5 @@
 ---
-version: "0.1"
+version: "0.2"
 name: Semantic Detail Navigation
 description: Spatial continuity in the default mode and a non-spatial state-preserving substitution when motion is reduced.
 posture: expressive

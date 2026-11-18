@@ -1,4 +1,4 @@
-# MOTION.md Format Specification v0.1
+# MOTION.md Format Specification v0.2
 
 Status: draft. Normative terms **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as requirement levels.
 
@@ -10,12 +10,14 @@ The lowercase name `motion.md` refers to this specification and repository. The 
 
 ## 2. Document structure
 
-A document contains:
+A document contains human-readable Markdown prose and machine-readable YAML. Machine data may be written in two ways, matching `DESIGN.md`:
 
-1. Optional YAML 1.2 front matter delimited by lines containing exactly `---`.
-2. A Markdown body containing human-readable intent and rationale.
+1. **YAML front matter** at the start of the file, delimited by lines containing exactly `---`.
+2. **Interleaved YAML code blocks**: fenced ` ```yaml ` (or ` ```yml `) blocks placed inside the section they belong to, for example `reducedMotion` under `## Reduced Motion`.
 
-When front matter is present, it is normative for exact values and graph relationships. Markdown prose is normative for design intent, priorities, prohibitions, and decision rationale. When they conflict, a conforming consumer MUST report the conflict rather than silently choosing one layer.
+Both may be used in one document. All blocks are parsed and merged into one tree. Each top-level key MUST be defined at most once across the whole document; a repeated top-level key is an error. Fenced YAML blocks are machine data, not prose: they are excluded from section content. Headings and references inside any fenced code block are not interpreted as document structure.
+
+Machine data is normative for exact values and graph relationships. Markdown prose is normative for design intent, priorities, prohibitions, and decision rationale. When they conflict, a conforming consumer MUST report the conflict rather than silently choosing one layer.
 
 JSON text is valid YAML 1.2 and MAY be used inside the front-matter delimiters. The reference parser implements the portable YAML subset described in section 11.
 
@@ -31,19 +33,29 @@ A fully authored document SHOULD include these `##` sections in this order:
 6. `Performance`
 7. `Provenance`
 
-Unknown sections MUST be preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous. A prose-only document is valid but produces a `missing-frontmatter` warning and cannot yield a complete Motion IR.
+Unknown sections MUST be preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous. A prose-only document is valid but produces a `missing-machine-data` warning and cannot yield a complete Motion IR.
 
-## 4. Front-matter root
+A section that is deliberately absent is declared in `omitted`, either as a section key or as `{ section, reason }`. Section keys are the lower kebab-case headings: `motion-thesis`, `motion-principles`, `hierarchy-and-choreography`, `interruption`, `reduced-motion`, `performance`, `provenance`. A declared omission suppresses the `missing-section` warning. An unknown key produces `unknown-omission` (a warning, so schema-valid); a key whose section is present produces `redundant-omission`. `omitted` covers prose only: required machine fields such as `reducedMotion` and `performance` cannot be omitted.
+
+```yaml
+omitted:
+  - section: hierarchy-and-choreography
+    reason: Only one element moves.
+```
+
+## 4. Machine-data root
 
 The normative schema is [../schemas/motion.schema.json](../schemas/motion.schema.json).
 
 | Field | Requirement | Meaning |
 | --- | --- | --- |
-| `version` | required | Specification version. v0.1 documents use `"0.1"`. |
+| `version` | required | Specification version. v0.2 documents use `"0.2"`. |
 | `name` | required | Human-readable motion system name. |
 | `description` | optional | Short machine-readable summary. |
 | `posture` | required | `static`, `minimal`, `expressive`, or `procedural`. |
-| `defaults` | optional | Default duration, delay, and curve references. |
+| `design` | optional | Relative path to the `DESIGN.md` whose motion tokens this document references. See section 7. |
+| `omitted` | optional | Prose sections that are deliberately absent. See section 3. |
+| `defaults` | optional | Default timing token, or default duration, delay, and curve references. |
 | `states` | conditional | Named semantic product states. Required for non-static postures. |
 | `events` | conditional | Named semantic inputs or observed changes. Required for non-static postures. |
 | `curves` | optional | Named easing, spring, step, or procedural curve definitions. |
@@ -99,9 +111,37 @@ Curve types:
 - `spring`: positive mass and stiffness, non-negative damping, optional initial velocity, and explicit settle thresholds.
 - `procedural`: a named generator or restricted expression plus parameters and a sampling contract.
 
-A procedural curve MUST declare `sample.rateHz` and `sample.durationMs`. If it uses randomness it MUST declare an integer `seed`. Expressions are data, not code: function calls, property access, assignment, imports, statements, and host-language callbacks are forbidden. The v0.1 expression vocabulary is arithmetic over `t`, `progress`, declared parameters, numeric constants, parentheses, and the pure functions `sin`, `cos`, `tan`, `abs`, `min`, `max`, `clamp`, `pow`, `sqrt`, `exp`, and `log`.
+A procedural curve MUST declare `sample.rateHz` and `sample.durationMs`. If it uses randomness it MUST declare an integer `seed`. Expressions are data, not code: function calls, property access, assignment, imports, statements, and host-language callbacks are forbidden. The expression vocabulary is arithmetic over `t`, `progress`, declared parameters, numeric constants, parentheses, and the pure functions `sin`, `cos`, `tan`, `abs`, `min`, `max`, `clamp`, `pow`, `sqrt`, `exp`, and `log`.
 
-## 7. Timelines and tracks
+## 7. Design motion tokens
+
+`DESIGN.md` owns the brand's motion vocabulary: purpose-named `motion` tokens with `duration`, `delay`, and `timingFunction`, such as `state-change`, `surface-enter`, and `surface-exit`. `MOTION.md` owns behavior: which states change, what drives the change, how tracks are choreographed, how interruption resolves, what reduced motion preserves, and the performance budget. A `MOTION.md` MUST NOT restate token values; it references them.
+
+### 7.1 Binding
+
+`design` names the `DESIGN.md` relative to the directory containing `MOTION.md`. It MUST be a relative path ending in `.md`; a leading `/`, a drive letter, a backslash, or a path that resolves outside that directory is an error (`design-path`). A missing file is an error (`broken-ref`).
+
+Consumers read only the `motion` key of the bound `DESIGN.md`, from its front matter or an interleaved YAML block. Other `DESIGN.md` content is outside this specification.
+
+### 7.2 References
+
+`defaults.timing` and a track's `timing` reference a token with the `DESIGN.md` token-reference syntax: `"{motion.<token>}"`, or `"{motion.<group>.<token>}"` for grouped tokens. A reference to a missing token is an error (`broken-ref`), as is a `timing` reference in a document with no `design`.
+
+`timing` replaces the fields it would otherwise duplicate. A track with `timing` MUST NOT also declare `durationMs` or `curve`; `defaults` with `timing` MUST NOT also declare `durationMs`, `delayMs`, or `curve` (`timing-conflict`). A track MAY still declare `startMs`, because placement inside a timeline is choreography, which `MOTION.md` owns.
+
+### 7.3 Resolution
+
+A referenced token resolves as follows:
+
+- `duration` and `delay` are integer milliseconds written with an `ms` suffix. `delay` defaults to `0ms`.
+- `timingFunction` defaults to `ease`. CSS keywords map to curves exactly as CSS Easing Functions Level 1 defines them: `linear`; `ease` = `[0.25, 0.1, 0.25, 1]`; `ease-in` = `[0.42, 0, 1, 1]`; `ease-out` = `[0, 0, 0.58, 1]`; `ease-in-out` = `[0.42, 0, 0.58, 1]`; `cubic-bezier(x1, y1, x2, y2)`; `steps(n[, jump-start|jump-end|jump-none|jump-both|start|end])`; `step-start`; `step-end`. Any other value, including multi-point `linear(...)`, is an error (`unsupported-timing-function`); consumers MUST NOT approximate it.
+- A track's resolved `durationMs` is the token duration, and its resolved `startMs` is the authored `startMs` (default `0`) plus the token delay.
+
+### 7.4 Single source of truth
+
+When a track declares a literal `durationMs` and a `curve` that together equal a bound token whose delay is zero, the linter reports `prefer-design-token` (`info`) so the literal can be replaced with a reference.
+
+## 8. Timelines and tracks
 
 A timeline owns a `driver` and an ordered array of tracks.
 
@@ -115,11 +155,12 @@ A track declares:
 - `target`: semantic target name, not a selector;
 - `property`: runtime-neutral property path such as `visual.opacity`, `spatial.translate-y`, or `content.reveal-progress`;
 - `keyframes`: two or more `{ at, value }` entries ordered by non-decreasing progress;
-- optional `curve`, `startMs`, and `durationMs` overrides.
+- optional `timing` (section 7), or optional `curve` and `durationMs` overrides;
+- optional `startMs`.
 
 Track order is authored order. Overlap is represented by `startMs` and duration, not by runtime-specific timeline syntax. Consumers MUST preserve semantic target/property names through normalization even when an adapter cannot implement them.
 
-## 8. Reduced motion
+## 9. Reduced motion
 
 `reducedMotion.strategy` is one of:
 
@@ -129,13 +170,13 @@ Track order is authored order. Overlap is represented by `startMs` and duration,
 
 Every substitution MUST declare the meanings it preserves. Common values are `state`, `content`, `focus`, `selection`, `input`, and `continuity`. A consumer MUST NOT infer that reduced motion permits hiding content or delaying task completion.
 
-## 9. Performance and deterministic playback
+## 10. Performance and deterministic playback
 
 The performance object defines budgets, not implementation choices. It includes target frame rate, maximum main-thread milliseconds per frame, maximum concurrent tracks, input-ready time, property classes, and deterministic playback.
 
 When `deterministic` is true, the same Motion IR, event sequence, viewport inputs, time samples, and declared seeds MUST produce the same semantic samples. Adapters MUST report unsupported budgets or nondeterministic behavior instead of silently changing the design.
 
-## 10. Provenance
+## 11. Provenance
 
 Each provenance entry has a stable `id`, `kind`, and `description`.
 
@@ -146,9 +187,9 @@ Kinds:
 - `derived`: calculated or normalized from another declared rule;
 - `research`: informed by an attributed external source.
 
-Non-authored entries MUST include `source`. An optional `license` records relevant reuse terms. Provenance describes evidence and influence; it does not transfer permission to copy implementations.
+Non-authored entries MUST include `source`. Values derived from `DESIGN.md` tokens SHOULD be recorded as a `derived` entry whose `source` is the `design` path. An optional `license` records relevant reuse terms. Provenance describes evidence and influence; it does not transfer permission to copy implementations.
 
-## 11. Portable YAML subset
+## 12. Portable YAML subset
 
 The reference parser intentionally has no runtime dependencies. It accepts the interoperable subset needed by the schema:
 
@@ -159,13 +200,27 @@ The reference parser intentionally has no runtime dependencies. It accepts the i
 
 Tabs, anchors, aliases, tags, directives, merge keys, block scalars, multi-document streams, and implicit timestamps are rejected. Tooling that supports full YAML 1.2 MAY accept a wider syntax, but MUST normalize to the same data model and MUST reject values outside the JSON-compatible schema.
 
-## 12. Extensions and forward compatibility
+The subset applies to the bound `DESIGN.md` only for its top-level `motion` block. Other `DESIGN.md` YAML is not parsed, so it may use syntax outside the subset.
+
+## 13. External references
+
+Prose MAY point to other files with the `DESIGN.md` external-reference syntax: an inline code span whose entire content is `@<path>[#<fragment>]`. `<path>` uses `/` separators, contains no whitespace, and ends in a file extension. `` `@media` `` and `` `@scope/package` `` are not references; neither is text outside a code span or inside a fenced block.
+
+Every reference resolves from the directory containing `MOTION.md`, never from the file it appears in. Fragments name a Markdown heading by slug (`` `@DESIGN.md#motion--micro-interaction` ``) or an HTML element `id` or `<!-- COMPONENT: name -->` marker. A consumer that does not understand a fragment for a file type uses the whole file.
+
+The `broken-ref` rule reports:
+
+- a leading `/` or a path that resolves outside the `MOTION.md` directory as an `error`;
+- a missing file, or a missing Markdown or HTML fragment, as a `warning`;
+- a fragment on any other file type as `info`.
+
+## 14. Extensions and forward compatibility
 
 Core objects accept keys prefixed with `x-`. The value MUST be JSON-compatible. Consumers MUST preserve unknown `x-*` fields and MUST NOT treat them as core conformance requirements unless they explicitly support that extension.
 
 Unknown unprefixed YAML keys are errors. Unknown Markdown sections are preserved without error. This makes the machine contract strict while allowing the human design language to grow through use.
 
-## 13. Stable parse output
+## 15. Stable parse output
 
 `parse` emits:
 
@@ -174,18 +229,20 @@ Unknown unprefixed YAML keys are errors. Unknown Markdown sections are preserved
 - `sourceHash` using SHA-256 over the original bytes;
 - normalized `document` data;
 - ordered Markdown `sections`;
-- normalized `ir` as defined in [motion-ir.md](motion-ir.md);
+- normalized `ir` as defined in [motion-ir.md](motion-ir.md), with `timing` references resolved and the bound `DESIGN.md` path and SHA-256 hash recorded;
 - parser `findings`.
 
 Object keys in emitted JSON are sorted lexicographically. Authored arrays retain their order.
 
-## 14. CLI conformance
+## 16. CLI conformance
 
 The reference CLI provides:
 
 - `lint <file|->`: parse and validate; exit `1` when errors exist, `0` otherwise, and `2` for unreadable input or CLI misuse.
 - `parse <file|->`: emit stable parsed JSON; exit `1` for invalid input.
 - `diff <before> <after>`: emit semantic IR and prose-section changes; exit `1` when breaking changes are detected.
-- `spec [--format markdown|json]`: emit this specification or the front-matter JSON Schema.
+- `spec [--format markdown|json]`: emit this specification or the machine-data JSON Schema.
+
+`lint`, `parse`, and `diff` resolve `design` and external references from the directory of each input file, and from the working directory for standard input. A library consumer supplies the same resolution through a `resolveFile(relativePath)` callback; without one, a `design` binding is an error (`unresolved-design`) and external references are checked for syntax only.
 
 All diagnostic records contain `rule`, `severity`, `path`, and `message`. Severity is `error`, `warning`, or `info`.

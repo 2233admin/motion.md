@@ -6,11 +6,11 @@ A format specification for describing motion graphics and frontend animation int
 
 **English** · [简体中文](README.zh-CN.md)
 
-[Specification](docs/spec.md) · [JSON Schema](schemas/motion.schema.json) · [Examples](examples) · [v0.1.0 release](https://github.com/2233admin/motion.md/releases/tag/v0.1.0)
+[Specification](docs/spec.md) · [JSON Schema](schemas/motion.schema.json) · [Examples](examples) · [v0.2 release notes](docs/releases/v0.2.0.md)
 
 ## The Format
 
-A `MOTION.md` file combines machine-readable motion semantics in YAML front matter with human-readable design intent in Markdown prose.
+A `MOTION.md` file combines machine-readable motion semantics in YAML (front matter, or ` ```yaml ` blocks interleaved into the sections they belong to) with human-readable design intent in Markdown prose.
 
 The YAML defines exact states, events, transitions, timelines, curves, interruption rules, accessibility substitutions, and performance budgets. The prose explains why those rules exist, what the motion should communicate, and where restraint matters.
 
@@ -19,7 +19,7 @@ The YAML defines exact states, events, transitions, timelines, curves, interrupt
 
 ```md
 ---
-version: "0.1"
+version: "0.2"
 name: Quiet Feedback
 posture: minimal
 states:
@@ -83,7 +83,7 @@ This motion direction is authored for the product.
 
 An agent reading this file knows which state owns the result, which event causes the change, how interruption is resolved, what reduced motion preserves, and which performance limits must survive runtime selection.
 
-See the [minimal](examples/minimal/MOTION.md), [expressive](examples/expressive/MOTION.md), [procedural](examples/procedural/MOTION.md), and [reduced-motion](examples/reduced-motion/MOTION.md) examples for complete motion systems.
+See the [minimal](examples/minimal/MOTION.md), [expressive](examples/expressive/MOTION.md), [procedural](examples/procedural/MOTION.md), [reduced-motion](examples/reduced-motion/MOTION.md), and [design-bound](examples/design-bound/MOTION.md) examples for complete motion systems. The design-bound example takes its timing from a sibling `DESIGN.md`.
 
 ## Getting Started
 
@@ -100,7 +100,7 @@ The CLI emits structured findings that coding agents can act on:
 {
   "findings": [],
   "format": "motion.md",
-  "specVersion": "0.1",
+  "specVersion": "0.2",
   "summary": {
     "errors": 0,
     "warnings": 0,
@@ -123,8 +123,8 @@ The full `MOTION.md` specification lives at [`docs/spec.md`](docs/spec.md). What
 
 A `MOTION.md` file has two layers:
 
-1. **YAML front matter** — exact motion semantics, delimited by `---` fences at the top of the file;
-2. **Markdown body** — design intent and rationale organized into `##` sections.
+1. **YAML** — exact motion semantics, either as front matter delimited by `---` fences or as ` ```yaml ` blocks inside the relevant section (for example `reducedMotion` under `## Reduced Motion`). All blocks merge into one tree; each top-level key may appear once;
+2. **Markdown body** — design intent and rationale organized into `##` sections. Prose may point to other files with `` `@path#fragment` ``, resolved from the `MOTION.md` directory.
 
 YAML is normative for exact values and graph relationships. Markdown is normative for intent, priorities, prohibitions, and decision rationale. A conforming consumer reports conflicts instead of silently choosing one layer.
 
@@ -135,10 +135,13 @@ YAML is normative for exact values and graph relationships. Markdown is normativ
 | `version` | Specification version |
 | `name` | Human-readable motion system name |
 | `posture` | `static`, `minimal`, `expressive`, or `procedural` |
+| `design` | Relative path to a `DESIGN.md` whose `motion` tokens may be referenced |
+| `omitted` | Prose sections deliberately left out, with optional reasons |
+| `defaults` | Default timing: a `timing` token reference, or duration, delay, and curve |
 | `states` | Semantic product states |
 | `events` | User, system, data, time, viewport, media, or sensor inputs |
 | `curves` | Linear, Bézier, steps, spring, or procedural curves |
-| `timelines` | Runtime-neutral drivers, tracks, and keyframes |
+| `timelines` | Runtime-neutral drivers, tracks, and keyframes; tracks may use `timing: "{motion.<token>}"` |
 | `transitions` | State changes, interruption, and cancellation policy |
 | `reducedMotion` | Accessibility strategy and semantic substitutions |
 | `performance` | Frame, input, concurrency, and determinism budgets |
@@ -158,7 +161,7 @@ Markdown sections may be omitted, but those present should follow this order:
 6. Performance
 7. Provenance
 
-Unknown sections are preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous.
+Unknown sections are preserved. Duplicate second-level headings are invalid because they make stable section addressing ambiguous. Sections left out on purpose are declared in `omitted`, which suppresses the `missing-section` warning.
 
 ## CLI Reference
 
@@ -172,21 +175,21 @@ All commands accept file paths; `lint` and `parse` also accept `-` for standard 
 | `motionmd spec` | Output the Markdown specification |
 | `motionmd spec --format json` | Output the JSON Schema |
 
-`lint`, `parse`, and `diff` exit with code `1` when invalid or breaking results are found. CLI misuse and unreadable input exit with code `2`.
+`design` and `@` references resolve from each input file's directory (the working directory for standard input). `lint`, `parse`, and `diff` exit with code `1` when invalid or breaking results are found. CLI misuse and unreadable input exit with code `2`.
 
 ## Relationship to DESIGN.md
 
-The project shape deliberately aligns with Google Labs' [`design.md`](https://github.com/google-labs-code/design.md):
+In November 2026 Google Labs' [`design.md`](https://github.com/google-labs-code/design.md) added a `## Motion & Micro-interaction` section and `motion` tokens (`duration`, `delay`, `timingFunction`). The split between the two files is:
 
-| Shared convention | `DESIGN.md` | `MOTION.md` |
-| --- | --- | --- |
-| Portable project document | Visual identity | Motion intent and temporal behavior |
-| YAML front matter | Exact design tokens | Exact states, events, timelines, and budgets |
-| Markdown prose | Visual rationale | Motion rationale, hierarchy, and restraint |
-| Machine contract | Schema and linting | Schema, linting, and Motion IR |
-| Agent workflow | Read, validate, export | Read, validate, normalize, compare |
+| Concern | Owner |
+| --- | --- |
+| Brand motion tone and timing vocabulary (`state-change`, `surface-enter`, …) | `DESIGN.md` |
+| State graph, events, choreography, interruption, reduced motion, budgets | `MOTION.md` |
+| Springs, scroll and pointer drivers, procedural curves | `MOTION.md` (no `DESIGN.md` equivalent) |
 
-The formats are complementary, not nested. `DESIGN.md` owns visual identity and design-system values. `MOTION.md` owns state change, time, interruption, reduced motion, and performance. Tooling may consume both without either specification redefining the other.
+`MOTION.md` binds with `design: DESIGN.md` and references tokens with `timing: "{motion.surface-enter}"` instead of restating 250ms and a Bézier curve. References resolve to concrete values in Motion IR together with the `DESIGN.md` hash, so a token change shows up in `motionmd diff`. A literal that happens to equal a token gets a `prefer-design-token` hint.
+
+Both formats share the same document conventions: front matter or interleaved YAML blocks, `##` sections, `omitted`, `{…}` token references, and `` `@path#fragment` `` external references. See [`examples/design-bound`](examples/design-bound).
 
 See [`docs/interoperability.md`](docs/interoperability.md) for the consumer boundary.
 
@@ -204,7 +207,7 @@ Runtime adapter → evidence and QA
 
 ## Status
 
-The `MOTION.md` format is at version `0.1` and remains a draft. The specification, JSON Schema, Motion IR, and CLI are ready for evaluation. Incompatible changes may occur before v1.0.
+The `MOTION.md` format is at version `0.2` and remains a draft. The specification, JSON Schema, Motion IR, and CLI are ready for evaluation. Incompatible changes may occur before v1.0.
 
 The repository is open source under the MIT License. The package remains marked `private` only to prevent accidental npm publication while the distribution contract is still evolving.
 

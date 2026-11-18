@@ -1,5 +1,5 @@
 ---
-version: "0.1"
+version: "0.2"
 name: Seeded Signal Field
 description: A deterministic ambient signal that becomes calmer during direct interaction.
 posture: procedural

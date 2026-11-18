@@ -1,5 +1,5 @@
 ---
-version: "0.1"
+version: "0.2"
 name: Authored Stillness
 description: A deliberately static product surface.
 posture: static
